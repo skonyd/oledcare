@@ -13,7 +13,9 @@ Normal bir USB webcam yeterli. MSI'ın OLED Care 3.0'daki "AI Care Sensor" özel
 | **Kontrol ediliyor** | 60 sn (ayarlanabilir) hiçbir şeye dokunmadın. Kamera açılır, saniyede bir yüz aranır. Sen ekrandaysan ekran açık kalır. | 🟠 Turuncu |
 | **Ekran kapalı** | 20 sn (ayarlanabilir) yüz görülmedi. Ekran kapanır, kamera geri dönüşünü bekler. | 🔵 Mavi |
 | **Geri döndün** | Kamera yüzünü art arda 2 karede görünce ya da klavye/fareye dokununca ekran açılır, kamera kapanır. | 🟢 Yeşil |
-| **Beklemede** | Tam ekran oyun/video açık, kamera kullanılamıyor ya da Windows oturumu kilitli. | ⚪ Gri |
+| **Beklemede** | Kamera kullanılamıyor ya da Windows oturumu kilitli. | ⚪ Gri |
+
+**Tam ekran oyun ve videolarda da çalışır.** Örneğin oyunda uzun bir ara sahne izlerken bir şeye dokunmasan da kamera seni gördükçe ekran açık kalır, Windows'un ekran kapatma süresi de (ör. 5 dk) sıfırlanır. Kalkıp gidersen, karanlık sahnelerde yanlış kapanmasın diye biraz daha uzun bekleyip (varsayılan 60 sn) ekranı kapatır.
 
 **Oyunlarda FPS kaybı olmaz.** Oyun oynarken sürekli tuşa bastığın için kamera hiç açılmaz. Yüz algılama ekran kartını değil işlemciyi kullanır ve sadece sen boştayken çalışır.
 
@@ -50,11 +52,12 @@ Kurmadan denemek istersen aynı sayfadaki `OledCare-Portable-x.y.z.zip` dosyası
 |---|---|---|
 | Boşta kalınca kontrole başla | 60 sn | Bu süre giriş olmazsa kamera açılır |
 | Yüz görülmezse kapat | 20 sn | Kamera bu süre yüz görmezse ekran kapanır |
+| Tam ekranda yüz görülmezse kapat | 60 sn | Tam ekran oyun/videoda (ara sahne vb.) kullanılan daha uzun süre |
 | Kontrol aralığı | 1000 ms | Kamera kontrolleri arası süre. Seni görürken iki katına çıkar |
 | Geri dönüş için gereken kare | 2 | Yanlış uyanmaları önler |
 | En küçük yüz boyutu | %8 | Arkadan geçen ya da uzaktaki kişileri yok sayar |
 | Ekran kapalıyken kamera süresi | 120 dk | Bu sürede dönmezsen kamera gizlilik için kapanır; ekranı klavye/fare ile açarsın |
-| Tam ekranda kamerayı kullanma | Açık | Kumandayla oynarken ya da film izlerken ekran kapanmaz |
+| Tam ekranda ekranı hiç kapatma | Kapalı | Açarsan tam ekran oyun/videoda kamera kullanılmaz, ekran da kapatılmaz |
 | Seni görürken ekranı açık tut | Açık | Okurken Windows'un ekranı kendiliğinden kapatmasını engeller |
 | Kamera yoksa ekranı kapatma | Açık | Kamera başka bir uygulamada kilitliyse ekran kapatılmaz |
 | Windows ile başlat | - | Açılışta simge durumunda başlar |
@@ -73,7 +76,8 @@ Ayarlar `%APPDATA%\OledCare\settings.json`, günlük `%APPDATA%\OledCare\oledcar
 
 - Çok karanlık ortamda yüz algılanamayabilir. Bu durumda ekran beklenenden erken kapanabilir. "Yüz görülmezse kapat" süresini artırabilirsin.
 - Windows'un yerleşik yüz algılayıcısı yandan veya çok eğik açıdan bakışları kaçırabilir.
-- Xbox uyumlu olmayan bazı kumandaların hareketi algılanmayabilir. Tam ekran kontrolü bu durumu büyük ölçüde kapatır.
+- Xbox uyumlu olmayan bazı kumandaların hareketi algılanmayabilir. Kamera seni gördüğü sürece bu sorun olmaz.
+- *Özel tam ekran* (exclusive fullscreen) modunda çalışan bazı eski oyunlar, üstlerine siyah perde açıldığında simge durumuna küçülebilir. Böyle bir oyunda "Sadece güç tasarrufu" yöntemini kullan ya da oyunu "kenarlıksız pencere" modunda çalıştır.
 
 ## Kaynaktan derleme
 

@@ -23,6 +23,12 @@ public sealed class AppSettings
     /// <summary>Kamera kontrolü sırasında kaç saniye yüz görülmezse ekran kapansın.</summary>
     public int AbsentBeforeOffSeconds { get; set; } = 20;
 
+    /// <summary>
+    /// Tam ekran oyun/video açıkken kaç saniye yüz görülmezse ekran kapansın.
+    /// Karanlık ara sahnelerde yanlış kapanmayı önlemek için normalden uzun tutulur.
+    /// </summary>
+    public int AbsentBeforeOffFullscreenSeconds { get; set; } = 60;
+
     /// <summary>İki kamera kontrolü arasındaki süre (milisaniye).</summary>
     public int CheckIntervalMs { get; set; } = 1000;
 
@@ -40,8 +46,11 @@ public sealed class AppSettings
     /// <summary>Ekran kapalıyken geri dönüş için kamera en fazla kaç dakika açık kalsın (0 = sınırsız).</summary>
     public int AwayCameraTimeoutMinutes { get; set; } = 120;
 
-    /// <summary>Tam ekran oyun/video açıkken kamera kontrolünü atla.</summary>
-    public bool PauseOnFullscreen { get; set; } = true;
+    /// <summary>
+    /// Tam ekran oyun/video açıkken kamerayı hiç kullanma ve ekranı hiç kapatma.
+    /// Kapalıysa (varsayılan) tam ekranda da kamera ile kontrol edilir.
+    /// </summary>
+    public bool NeverTurnOffInFullscreen { get; set; }
 
     /// <summary>Kamera seni görürken Windows'un ekranı kendiliğinden kapatmasını engelle.</summary>
     public bool KeepDisplayOnWhilePresent { get; set; } = true;
@@ -105,6 +114,7 @@ public sealed class AppSettings
     {
         IdleBeforeCheckSeconds = Math.Clamp(IdleBeforeCheckSeconds, 5, 3600);
         AbsentBeforeOffSeconds = Math.Clamp(AbsentBeforeOffSeconds, 3, 3600);
+        AbsentBeforeOffFullscreenSeconds = Math.Clamp(AbsentBeforeOffFullscreenSeconds, 3, 3600);
         CheckIntervalMs = Math.Clamp(CheckIntervalMs, 250, 10000);
         ReturnConfirmFrames = Math.Clamp(ReturnConfirmFrames, 1, 10);
         MinFaceSizePercent = Math.Clamp(MinFaceSizePercent, 1, 80);

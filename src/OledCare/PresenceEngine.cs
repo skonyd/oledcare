@@ -250,15 +250,11 @@ internal sealed class PresenceEngine : IAsyncDisposable
 
     private async Task<int> BeginWatchingAsync(AppSettings s)
     {
-        bool fullscreen = s.PauseOnFullscreen && FullscreenDetector.IsFullscreenAppActive();
-        lock (_gate)
-        {
-            _fullscreen = fullscreen;
-        }
+        bool fullscreen = UpdateFullscreen();
 
-        if (fullscreen)
+        if (fullscreen && s.NeverTurnOffInFullscreen)
         {
-            SetState(EngineState.Paused, "Tam ekran uygulama açık");
+            SetState(EngineState.Paused, "Tam ekran uygulama açık; ekran kapatılmayacak");
             _pausedUntil = DateTime.Now.AddSeconds(5);
             return ActiveTickMs;
         }
@@ -327,16 +323,38 @@ internal sealed class PresenceEngine : IAsyncDisposable
             return Math.Min(s.CheckIntervalMs * 2, 5000);
         }
 
+        // Tam ekran oyun/videoda (ör. uzun ara sahne) daha uzun bekle.
+        bool fullscreen = UpdateFullscreen();
+        if (fullscreen && s.NeverTurnOffInFullscreen)
+        {
+            await SafeCloseCameraAsync();
+            SetState(EngineState.Paused, "Tam ekran uygulama açık; ekran kapatılmayacak");
+            _pausedUntil = now.AddSeconds(5);
+            return ActiveTickMs;
+        }
+
+        int limit = fullscreen ? s.AbsentBeforeOffFullscreenSeconds : s.AbsentBeforeOffSeconds;
         var absent = now - _lastFaceAtWatch;
-        if (absent.TotalSeconds >= s.AbsentBeforeOffSeconds)
+        if (absent.TotalSeconds >= limit)
         {
             await GoAwayAsync(s, "Yüz görülmedi; ekran kapatıldı");
             return s.CheckIntervalMs;
         }
 
-        int remaining = (int)Math.Ceiling(s.AbsentBeforeOffSeconds - absent.TotalSeconds);
-        SetState(EngineState.Watching, $"Yüz görülmüyor; {remaining} sn içinde kapanacak");
+        int remaining = (int)Math.Ceiling(limit - absent.TotalSeconds);
+        SetState(EngineState.Watching, $"Yüz görülmüyor; {remaining} sn içinde kapanacak{(fullscreen ? " (tam ekran)" : string.Empty)}");
         return s.CheckIntervalMs;
+    }
+
+    private bool UpdateFullscreen()
+    {
+        bool fullscreen = FullscreenDetector.IsFullscreenAppActive();
+        lock (_gate)
+        {
+            _fullscreen = fullscreen;
+        }
+
+        return fullscreen;
     }
 
     private async Task GoAwayAsync(AppSettings s, string detail)

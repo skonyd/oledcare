@@ -30,6 +30,7 @@ internal sealed class StatusForm : Form
     // Ayarlar
     private readonly NumericUpDown _idleSeconds = NewNumber(5, 3600);
     private readonly NumericUpDown _absentSeconds = NewNumber(3, 3600);
+    private readonly NumericUpDown _absentFullscreenSeconds = NewNumber(3, 3600);
     private readonly NumericUpDown _checkIntervalMs = NewNumber(250, 10000, 250);
     private readonly NumericUpDown _returnFrames = NewNumber(1, 10);
     private readonly NumericUpDown _minFacePercent = NewNumber(1, 80);
@@ -37,7 +38,7 @@ internal sealed class StatusForm : Form
     private readonly NumericUpDown _awayCameraMinutes = NewNumber(0, 1440);
     private readonly ComboBox _offMode = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
     private readonly ComboBox _camera = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
-    private readonly CheckBox _pauseOnFullscreen = new() { Text = "Tam ekran oyun/video açıkken kamerayı kullanma", AutoSize = true };
+    private readonly CheckBox _neverOffInFullscreen = new() { Text = "Tam ekran oyun/video açıkken ekranı hiç kapatma (kamera kullanılmaz)", AutoSize = true };
     private readonly CheckBox _keepDisplayOn = new() { Text = "Kamera beni görürken Windows ekranı kapatmasın", AutoSize = true };
     private readonly CheckBox _neverWithoutCamera = new() { Text = "Kamera kullanılamıyorsa ekranı hiç kapatma", AutoSize = true };
     private readonly CheckBox _startEnabled = new() { Text = "Açılışta izlemeye otomatik başla", AutoSize = true };
@@ -224,6 +225,7 @@ internal sealed class StatusForm : Form
 
         AddRow(grid, "Boşta kalınca kontrole başla (sn)", _idleSeconds);
         AddRow(grid, "Yüz görülmezse kapat (sn)", _absentSeconds);
+        AddRow(grid, "Tam ekranda yüz görülmezse kapat (sn)", _absentFullscreenSeconds);
         AddRow(grid, "Kontrol aralığı (ms)", _checkIntervalMs);
         AddRow(grid, "Geri dönüş için gereken kare", _returnFrames);
         AddRow(grid, "En küçük yüz boyutu (% görüntü)", _minFacePercent);
@@ -238,7 +240,7 @@ internal sealed class StatusForm : Form
         cameraRow.Controls.Add(refreshCameras);
         AddRow(grid, "Kamera", cameraRow);
 
-        foreach (var cb in new[] { _pauseOnFullscreen, _keepDisplayOn, _neverWithoutCamera, _startEnabled, _startWithWindows, _closeToTray })
+        foreach (var cb in new[] { _neverOffInFullscreen, _keepDisplayOn, _neverWithoutCamera, _startEnabled, _startWithWindows, _closeToTray })
         {
             cb.Margin = new Padding(0, 4, 0, 4);
             grid.Controls.Add(cb);
@@ -283,13 +285,14 @@ internal sealed class StatusForm : Form
     {
         _idleSeconds.Value = _settings.IdleBeforeCheckSeconds;
         _absentSeconds.Value = _settings.AbsentBeforeOffSeconds;
+        _absentFullscreenSeconds.Value = _settings.AbsentBeforeOffFullscreenSeconds;
         _checkIntervalMs.Value = _settings.CheckIntervalMs;
         _returnFrames.Value = _settings.ReturnConfirmFrames;
         _minFacePercent.Value = _settings.MinFaceSizePercent;
         _powerOffDelay.Value = _settings.PowerOffDelaySeconds;
         _awayCameraMinutes.Value = _settings.AwayCameraTimeoutMinutes;
         _offMode.SelectedItem = _offMode.Items.Cast<OffModeItem>().First(i => i.Mode == _settings.OffMode);
-        _pauseOnFullscreen.Checked = _settings.PauseOnFullscreen;
+        _neverOffInFullscreen.Checked = _settings.NeverTurnOffInFullscreen;
         _keepDisplayOn.Checked = _settings.KeepDisplayOnWhilePresent;
         _neverWithoutCamera.Checked = _settings.NeverTurnOffWithoutCamera;
         _startEnabled.Checked = _settings.StartEnabled;
@@ -335,13 +338,14 @@ internal sealed class StatusForm : Form
         var s = _settings.Clone();
         s.IdleBeforeCheckSeconds = (int)_idleSeconds.Value;
         s.AbsentBeforeOffSeconds = (int)_absentSeconds.Value;
+        s.AbsentBeforeOffFullscreenSeconds = (int)_absentFullscreenSeconds.Value;
         s.CheckIntervalMs = (int)_checkIntervalMs.Value;
         s.ReturnConfirmFrames = (int)_returnFrames.Value;
         s.MinFaceSizePercent = (int)_minFacePercent.Value;
         s.PowerOffDelaySeconds = (int)_powerOffDelay.Value;
         s.AwayCameraTimeoutMinutes = (int)_awayCameraMinutes.Value;
         s.OffMode = (_offMode.SelectedItem as OffModeItem)?.Mode ?? OffMode.OverlayThenPowerOff;
-        s.PauseOnFullscreen = _pauseOnFullscreen.Checked;
+        s.NeverTurnOffInFullscreen = _neverOffInFullscreen.Checked;
         s.KeepDisplayOnWhilePresent = _keepDisplayOn.Checked;
         s.NeverTurnOffWithoutCamera = _neverWithoutCamera.Checked;
         s.StartEnabled = _startEnabled.Checked;
@@ -402,7 +406,9 @@ internal sealed class StatusForm : Form
             ? $"{snap.LastDetection.FaceCount} yüz, en büyük %{snap.LastDetection.LargestFacePercent:0}, {snap.LastDetection.Duration.TotalMilliseconds:0} ms"
             : "-";
         _values["Boşta geçen süre"].Text = FormatSpan(snap.IdleTime);
-        _values["Tam ekran uygulama"].Text = snap.FullscreenActive ? "Evet (kontrol duraklatıldı)" : "Hayır";
+        _values["Tam ekran uygulama"].Text = !snap.FullscreenActive ? "Hayır"
+            : _settings.NeverTurnOffInFullscreen ? "Evet (ekran kapatılmıyor)"
+            : $"Evet (kamera ile kontrol, {_settings.AbsentBeforeOffFullscreenSeconds} sn)";
         _values["Ekran"].Text = !snap.DisplayOff ? "Açık" : snap.DisplayPoweredOff ? "Kapalı (güç tasarrufu)" : "Kapalı (siyah perde)";
         _values["Kapatma yöntemi"].Text = (_offMode.Items.Cast<OffModeItem>().FirstOrDefault(i => i.Mode == _settings.OffMode))?.Text ?? "-";
 
