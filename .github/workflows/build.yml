@@ -1,0 +1,79 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Sürümü belirle
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $v = "${{ github.ref_name }}".TrimStart("v")
+          } else {
+            $v = "0.1.0-ci.${{ github.run_number }}"
+          }
+          # Inno Setup ve dosya sürümü için yalnızca sayısal kısım
+          $numeric = ($v -split "-")[0]
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "numeric=$numeric" >> $env:GITHUB_OUTPUT
+
+      - name: Yayınla (tek dosya, .NET gömülü)
+        run: >
+          dotnet publish src/OledCare/OledCare.csproj -c Release -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=none
+          -p:Version=${{ steps.version.outputs.numeric }}
+          -p:InformationalVersion=${{ steps.version.outputs.version }}
+          -o publish
+
+      - name: Inno Setup'ı hazırla
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) {
+            $default = "${env:ProgramFiles(x86)}\Inno Setup 6"
+            if (Test-Path "$default\ISCC.exe") {
+              $default >> $env:GITHUB_PATH
+            } else {
+              choco install innosetup -y --no-progress
+              "${env:ProgramFiles(x86)}\Inno Setup 6" >> $env:GITHUB_PATH
+            }
+          }
+
+      - name: Kurulum dosyasını oluştur
+        run: iscc /DAppVersion=${{ steps.version.outputs.numeric }} /DPublishDir=..\publish installer\OledCare.iss
+
+      - name: Taşınabilir ZIP oluştur
+        shell: pwsh
+        run: Compress-Archive -Path publish\* -DestinationPath dist\OledCare-Portable-${{ steps.version.outputs.version }}.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OledCare-${{ steps.version.outputs.version }}
+          path: dist/*
+
+      - name: GitHub sürümü yayınla
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
